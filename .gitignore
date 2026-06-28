@@ -1,2 +1,25 @@
+# Environment files
+.env
+.env.*
+.env.example
+
+# Virtual environments
+venv/
+.venv/
+env/
+envs/
+.envs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
 data/
 plan.md
