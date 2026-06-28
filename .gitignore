@@ -22,4 +22,5 @@ build/
 .idea/
 
 data/
+qdrant_storage/
 plan.md
