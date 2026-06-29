@@ -23,4 +23,7 @@ build/
 
 data/
 qdrant_storage/
+.opencode/
 plan.md
+AGENTS.md
+opencode.json
