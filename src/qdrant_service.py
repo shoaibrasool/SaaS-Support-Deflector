@@ -1,5 +1,5 @@
 import hashlib
-from typing import List
+from typing import Dict, List, Optional
 
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as rest
@@ -81,6 +81,61 @@ class QdrantService:
             points=points,
         )
         print(f"Upserted {len(points)} points to '{COLLECTION_NAME}'")
+
+    def search_dense(
+        self,
+        query_embedding: List[float],
+        top_k: int = 5,
+        category: Optional[str] = None,
+    ) -> List[rest.ScoredPoint]:
+        filter_condition = None
+        if category:
+            filter_condition = rest.Filter(
+                must=[
+                    rest.FieldCondition(
+                        key="category_slug",
+                        match=rest.MatchValue(value=category),
+                    )
+                ]
+            )
+
+        results = self.client.query_points(
+            collection_name=COLLECTION_NAME,
+            query=query_embedding,
+            using="dense",
+            query_filter=filter_condition,
+            limit=top_k,
+            with_payload=True,
+        )
+        return results.points
+
+    def get_categories(self) -> List[Dict[str, str]]:
+        seen: Dict[str, str] = {}
+        offset = None
+        limit = 100
+
+        while True:
+            result = self.client.scroll(
+                collection_name=COLLECTION_NAME,
+                limit=limit,
+                offset=offset,
+                with_payload=["category_slug", "category"],
+            )
+            points, next_offset = result
+            for point in points:
+                slug = point.payload.get("category_slug")
+                name = point.payload.get("category")
+                if slug and name and slug not in seen:
+                    seen[slug] = name
+
+            if next_offset is None:
+                break
+            offset = next_offset
+
+        return sorted(
+            [{"slug": slug, "name": name} for slug, name in seen.items()],
+            key=lambda x: x["slug"],
+        )
 
     def health_check(self) -> bool:
         try:
