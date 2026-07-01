@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as rest
 
-from src.config import COLLECTION_NAME, QDRANT_URL, VECTOR_SIZE
+from src.config import COLLECTION_NAME, QDRANT_API_KEY, QDRANT_URL, VECTOR_SIZE
 from src.data_loader import ArticleChunk
 from src.models import ChunkPayload
 
@@ -15,8 +15,8 @@ def point_id(article_id: str, chunk_index: int) -> int:
 
 
 class QdrantService:
-    def __init__(self, url: str = QDRANT_URL):
-        self.client = QdrantClient(url=url)
+    def __init__(self, url: str = QDRANT_URL, api_key: str = QDRANT_API_KEY):
+        self.client = QdrantClient(url=url, api_key=api_key)
 
     def ensure_collection(self):
         if self.client.collection_exists(COLLECTION_NAME):
