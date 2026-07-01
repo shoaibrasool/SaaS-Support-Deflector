@@ -1,6 +1,9 @@
+from pathlib import Path
 from typing import Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from src.bm25 import BM25Index
 from src.config import HYBRID_ALPHA, TOP_K
@@ -12,6 +15,14 @@ from src.qdrant_service import QdrantService, _point_id
 RRF_K = 60
 
 app = FastAPI(title="SaaS Support Deflector")
+
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+@app.get("/")
+def index():
+    return FileResponse(str(STATIC_DIR / "index.html"))
 
 articles: List[Article] = []
 chunks: List[ArticleChunk] = []
