@@ -16,11 +16,13 @@
   const stateLoading = $('#state-loading');
   const stateNoResults = $('#state-no-results');
   const noResultsMsg = $('#no-results-message');
+  const searchSection = $('#search-section');
+  const themeToggle = $('#theme-toggle');
 
   /* ---- state ---- */
   let currentQuery = '';
-  let currentCategory = '';   // slug
-  let allCategories = [];     // [{slug, name}]
+  let currentCategory = '';
+  let allCategories = [];
   let selectedIndex = -1;
 
   /* ---- helpers ---- */
@@ -40,6 +42,25 @@
     var url = p.toString() ? '/?' + p.toString() : '/';
     window.history.pushState({ query: query, category: category }, '', url);
   }
+
+  /* ---- dark mode ---- */
+  function getPreferredTheme() {
+    var stored = localStorage.getItem('theme');
+    if (stored) return stored;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }
+
+  themeToggle.addEventListener('click', function () {
+    var current = document.documentElement.getAttribute('data-theme') || 'light';
+    setTheme(current === 'dark' ? 'light' : 'dark');
+  });
+
+  setTheme(getPreferredTheme());
 
   /* ---- SVG icons for categories ---- */
   var icons = {
@@ -142,13 +163,15 @@
     $$('.category-item').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var slug = btn.getAttribute('data-slug');
-        setActiveCategory(slug);
-        currentCategory = (slug === currentCategory ? '' : slug);
-        if (!currentCategory) {
-          setActiveCategory('');
-          input.value = currentQuery;
+        var previouslyActive = slug === currentCategory;
+        currentCategory = previouslyActive ? '' : slug;
+        setActiveCategory(currentCategory);
+        if (!currentCategory && !input.value.trim()) {
+          setIdle();
+          syncUrl('', '');
+          return;
         }
-        performSearch(currentQuery, currentCategory || null, true);
+        performSearch(input.value.trim(), currentCategory || null, true);
       });
     });
   }
@@ -157,6 +180,15 @@
     $$('.category-item').forEach(function (btn) {
       btn.classList.toggle('active', btn.getAttribute('data-slug') === slug);
     });
+  }
+
+  /* ---- search section state (hero vs active) ---- */
+  function setActive() {
+    searchSection.classList.add('active');
+  }
+
+  function setIdle() {
+    searchSection.classList.remove('active');
   }
 
   /* ---- search ---- */
@@ -218,12 +250,15 @@
     currentCategory = category || '';
 
     if (!currentQuery && !currentCategory) {
+      setIdle();
       showOnly('empty');
       resultsTitle.textContent = 'Search';
       resultsSubtitle.textContent = 'Browse knowledge base articles';
       if (updateUrl) syncUrl('', '');
       return;
     }
+
+    setActive();
 
     if (currentQuery && currentQuery.length < 2) {
       showOnly('empty');
@@ -282,7 +317,6 @@
   }
 
   document.addEventListener('keydown', function (e) {
-    // focus search with /
     if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
       e.preventDefault();
       input.focus();
@@ -342,7 +376,6 @@
 
   overlay.addEventListener('click', closeSidebar);
 
-  /* ---- close sidebar on category select (mobile) ---- */
   document.addEventListener('click', function (e) {
     if (e.target.closest('.category-item') && window.innerWidth <= 767) {
       closeSidebar();
@@ -383,6 +416,7 @@
       if (params.query || params.category) {
         performSearch(params.query, params.category || null, false);
       } else {
+        setIdle();
         showOnly('empty');
         resultsTitle.textContent = 'Search';
         resultsSubtitle.textContent = 'Browse knowledge base articles';
