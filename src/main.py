@@ -10,7 +10,7 @@ from src.config import HYBRID_ALPHA, TOP_K
 from src.data_loader import Article, ArticleChunk, get_article_chunks, load_articles
 from src.embedding import EmbeddingService
 from src.models import SearchRequest, SearchResult
-from src.qdrant_service import QdrantService, _point_id
+from src.qdrant_service import QdrantService, point_id
 
 RRF_K = 60
 
@@ -90,7 +90,7 @@ def _rrf_merge(
 
     for rank, (chunk_idx, _) in enumerate(bm25_results):
         chunk = chunks[chunk_idx]
-        doc_id = _point_id(chunk.article_id, chunk.chunk_index)
+        doc_id = point_id(chunk.article_id, chunk.chunk_index)
         scores[doc_id] = scores.get(doc_id, 0) + (1 - alpha) / (k + rank + 1)
 
     sorted_ids = sorted(scores.items(), key=lambda x: -x[1])[:top_k]
@@ -115,7 +115,7 @@ def _rrf_merge(
         else:
             for chunk_idx, _ in bm25_results:
                 chunk = chunks[chunk_idx]
-                if _point_id(chunk.article_id, chunk.chunk_index) == doc_id:
+                if point_id(chunk.article_id, chunk.chunk_index) == doc_id:
                     payload = _payload_from_chunk(chunk)
                     result.append(SearchResult(
                         article_id=payload["article_id"],
