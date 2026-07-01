@@ -21,7 +21,6 @@ build/
 .vscode/
 .idea/
 
-data/
 qdrant_storage/
 .opencode/
 plan.md

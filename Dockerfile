@@ -1,9 +1,7 @@
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PORT=8001 \
-    HOST=0.0.0.0
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
@@ -14,4 +12,4 @@ COPY . ./
 
 EXPOSE 8001
 
-CMD ["python", "run.py"]
+CMD uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8001}
