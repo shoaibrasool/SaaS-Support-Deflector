@@ -1,9 +1,7 @@
-import time
-
 from src.config import EMBED_DELAY, MAX_CHUNKS_TO_EMBED
 from src.data_loader import get_article_chunks, load_articles
 from src.embedding import EmbeddingService
-from src.qdrant_service import QdrantService
+from src.qdrant_service import QdrantService, point_id
 
 
 def main():
@@ -13,22 +11,37 @@ def main():
     all_chunks = get_article_chunks()
     print(f"Total chunks generated: {len(all_chunks)}")
 
-    chunks_to_embed = all_chunks[:MAX_CHUNKS_TO_EMBED]
-    dropped = len(all_chunks) - MAX_CHUNKS_TO_EMBED
-    print(f"Embedding first {len(chunks_to_embed)} chunks (dropping {dropped})")
+    qdrant = QdrantService()
+    qdrant.ensure_collection()
+
+    existing_ids = qdrant.get_existing_point_ids()
+    print(f"Existing points in Qdrant: {len(existing_ids)}")
+
+    new_chunks = [
+        c for c in all_chunks
+        if point_id(c.article_id, c.chunk_index) not in existing_ids
+    ]
+    print(f"New chunks to embed: {len(new_chunks)}")
+
+    if not new_chunks:
+        print("All chunks already ingested. Nothing to do.")
+        return
+
+    batch = new_chunks[:MAX_CHUNKS_TO_EMBED]
+    held = len(new_chunks) - len(batch)
+    already_done = len(all_chunks) - len(new_chunks)
+    print(f"Embedding {len(batch)} chunks ({already_done} already done, {held} held for next run)")
 
     embedder = EmbeddingService()
     embeddings = embedder.embed_chunks(
-        chunks_to_embed,
+        batch,
         delay=EMBED_DELAY,
     )
     print(f"Generated {len(embeddings)} embeddings")
 
-    qdrant = QdrantService()
-    qdrant.ensure_collection()
-    qdrant.upsert_chunks(chunks_to_embed, embeddings)
+    qdrant.upsert_chunks(batch, embeddings)
 
-    print(f"\nDone. Embedded {len(chunks_to_embed)} chunks and stored in Qdrant (dropped {dropped})")
+    print(f"\nDone. Embedded and stored {len(batch)} chunks.")
 
 
 if __name__ == "__main__":

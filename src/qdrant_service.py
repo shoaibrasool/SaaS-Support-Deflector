@@ -9,7 +9,7 @@ from src.data_loader import ArticleChunk
 from src.models import ChunkPayload
 
 
-def _point_id(article_id: str, chunk_index: int) -> int:
+def point_id(article_id: str, chunk_index: int) -> int:
     raw = f"{article_id}:{chunk_index}"
     return int(hashlib.md5(raw.encode()).hexdigest(), 16) % (2**63 - 1)
 
@@ -51,6 +51,22 @@ class QdrantService:
 
         print(f"Collection '{COLLECTION_NAME}' created (dense={VECTOR_SIZE}, sparse=bm25)")
 
+    def get_existing_point_ids(self) -> set[int]:
+        ids: set[int] = set()
+        next_offset = None
+        while True:
+            results, next_offset = self.client.scroll(
+                collection_name=COLLECTION_NAME,
+                limit=1000,
+                offset=next_offset,
+                with_payload=False,
+            )
+            for point in results:
+                ids.add(point.id)
+            if next_offset is None:
+                break
+        return ids
+
     def upsert_chunks(self, chunks: List[ArticleChunk], embeddings: List[List[float]]):
         points = []
         for chunk, embedding in zip(chunks, embeddings):
@@ -68,7 +84,7 @@ class QdrantService:
 
             points.append(
                 rest.PointStruct(
-                    id=_point_id(chunk.article_id, chunk.chunk_index),
+                    id=point_id(chunk.article_id, chunk.chunk_index),
                     vector={
                         "dense": embedding,
                     },
