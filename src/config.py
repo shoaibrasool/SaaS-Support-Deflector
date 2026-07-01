@@ -11,5 +11,5 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 HYBRID_ALPHA = float(os.getenv("HYBRID_ALPHA", "0.7"))
 TOP_K = int(os.getenv("TOP_K", "5"))
 
-MAX_CHUNKS_TO_EMBED = 800
+MAX_CHUNKS_TO_EMBED = 70
 EMBED_DELAY = 0.05
